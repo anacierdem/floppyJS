@@ -10,3 +10,5 @@ Currently working with only FAT12 images. Any help is appreciated.
 The image on http://rescup.winbuilder.net/bootdisk/ is used to test the software.
 
 Uses dTree -> http://www.destroydrop.com/javascripts/tree/
+
+Preview at http://alinacierdem.com/floppyJS
