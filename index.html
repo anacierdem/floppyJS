@@ -12,7 +12,8 @@
 	<script type="text/javascript" src="dtree.js"></script>
 	<script type="text/javascript" src="FileSaver.js"></script>
 	
-	<div id = "textOut"></div>
+	<div id = "textOut" style="position: fixed;left: 500px;"></div>
+	<div id = "treeHolder" style="position: fixed;left: 0px;height: 200px;width:500px;overflow: scroll;"></div>
     <script type="text/javascript">
 
 	function littleEndianInteger (length, data, startOffset) {
@@ -116,7 +117,7 @@
 			
 			var fullname = filename + (fileext == "" ? "" : ("." + fileext))
 
-			var attributes = [];
+			var attributes = {};
 			attributes.ro = getBitFromByte(data, byteNo + 11, 0);
 			attributes.hidden = getBitFromByte(data, byteNo + 11, 1);
 			attributes.system = getBitFromByte(data, byteNo + 11, 2);
@@ -128,7 +129,24 @@
 			var firstCluster = littleEndianInteger(2, data, byteNo + 26);
 			
 			if(fullname != "." && fullname != ".." && attributes.system != 1){
-				d.add(uniqueID,parentEntry,fullname, fileSize);
+
+				var scriptToRun = "";
+
+				if(attributes.dir != 1)
+				{
+					var clusterCount = Math.ceil(fileSize/512);
+					var finalClusterByteCount = (1-clusterCount)*512+fileSize;
+
+					scriptToRun = "var fileContents = getFileFromFAT("+firstCluster+");";
+					scriptToRun += "var finalCluster = new Uint8Array("+finalClusterByteCount+");";
+					scriptToRun += "finalCluster.set(fileContents["+(clusterCount-1)+"].slice(0,"+finalClusterByteCount+"));";
+					scriptToRun += "fileContents["+(clusterCount-1)+"] = finalCluster;";
+
+					scriptToRun += "var blob = new Blob(fileContents, {type: 'application/octet-stream', endings: 'transparent'});";
+					scriptToRun += "saveAs(blob, '"+fullname+"', true);var size = "+fileSize+";";
+				}
+
+				d.add(uniqueID,parentEntry,fullname, "javascript:"+scriptToRun); //fileSize
 				uniqueID++;
 				if(attributes.dir == 1 && !(attributes.label == 1)){
 					var currentParent = uniqueID - 1;
@@ -204,7 +222,7 @@
 					break;
 			}
 			
-			$("#textOut").append(d.toString());
+			$("#treeHolder").append(d.toString());
 
 			//var blob = new Blob(sectors, {type: "application/octet-stream"});
 			//saveAs(blob, "hello world.txt");
