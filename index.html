@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
-<head>
-    <title>Reading Binary Data with the File API and JavaScript</title>
+<head><meta http-equiv="Content-Type" content="text/html; charset=big5">
+    <title>floppyJS</title>
 </head>
 <body>                            
     <input id="browseOpen" type="file"/>
@@ -13,8 +13,8 @@
 	<script type="text/javascript" src="FileSaver.js"></script>
 	
 	<div id = "textOut" style="position: fixed;left: 500px;"></div>
-	<div id = "treeHolder" style="position: fixed;left: 0px;height: 200px;width:500px;overflow: scroll;"></div>
-    <script type="text/javascript">
+	<div id = "treeHolder" style="position: fixed;left: 0px;height: 600px;width:500px;overflow: scroll;"></div>
+    <script type="text/javascript"> 
 
 	function littleEndianInteger (length, data, startOffset) {
 		var value = 0;
@@ -127,28 +127,35 @@
 			
 			var fileSize = littleEndianInteger(4, data, byteNo + 28);
 			var firstCluster = littleEndianInteger(2, data, byteNo + 26);
+
 			
-			if(fullname != "." && fullname != ".." && attributes.system != 1){
+			if(fullname != "." && fullname != ".." && attributes.label != 1){
 
 				var scriptToRun = "";
 
 				if(attributes.dir != 1)
 				{
-					var clusterCount = Math.ceil(fileSize/512);
-					var finalClusterByteCount = (1-clusterCount)*512+fileSize;
-
-					scriptToRun = "var fileContents = getFileFromFAT("+firstCluster+");";
-					scriptToRun += "var finalCluster = new Uint8Array("+finalClusterByteCount+");";
-					scriptToRun += "finalCluster.set(fileContents["+(clusterCount-1)+"].slice(0,"+finalClusterByteCount+"));";
-					scriptToRun += "fileContents["+(clusterCount-1)+"] = finalCluster;";
-
-					scriptToRun += "var blob = new Blob(fileContents, {type: 'application/octet-stream', endings: 'transparent'});";
-					scriptToRun += "saveAs(blob, '"+fullname+"', true);var size = "+fileSize+";";
+					if(fileSize>0) {
+						var clusterCount = Math.ceil(fileSize/512);
+						var finalClusterByteCount = (1-clusterCount)*512+fileSize;
+	
+						scriptToRun = "var fileContents = getFileFromFAT("+firstCluster+");";
+						scriptToRun += "var finalCluster = new Uint8Array("+finalClusterByteCount+");";
+						scriptToRun += "finalCluster.set(fileContents["+(clusterCount-1)+"].slice(0,"+finalClusterByteCount+"));";
+						scriptToRun += "fileContents["+(clusterCount-1)+"] = finalCluster;";
+	
+						scriptToRun += "var blob = new Blob(fileContents, {type: 'application/octet-stream', endings: 'transparent'});";
+						scriptToRun += "saveAs(blob, '"+fullname+"', true);var size = "+fileSize+";";
+						
+						d.add(uniqueID,parentEntry,fullname, "javascript:"+scriptToRun); 
+						uniqueID++;
+					}
+				}else {
+					d.add(uniqueID,parentEntry,fullname, ""); 
+					uniqueID++;
 				}
 
-				d.add(uniqueID,parentEntry,fullname, "javascript:"+scriptToRun); //fileSize
-				uniqueID++;
-				if(attributes.dir == 1 && !(attributes.label == 1)){
+				if(attributes.dir == 1){
 					var currentParent = uniqueID - 1;
 					var tmpClusters = getFileFromFAT(firstCluster);
 					for (var k = 0; k < tmpClusters.length; k++){
@@ -207,7 +214,7 @@
 			
 			d = new dTree('d');
 
-			d.add(uniqueID,-1,'Disk');
+			d.add(uniqueID,-1,stringFromBytes(11, sectors[0], 43));
 			uniqueID++;
 			
 						
@@ -218,17 +225,12 @@
 			//loop directory sectors (14 total)
 			for (var i = 0; i < 14; i++) {
 
-				if(readAndAppendDirectorySector( sectors[19+i] , 0))
-					break;
+				readAndAppendDirectorySector( sectors[19+i] , 0);
+					//break;
 			}
 			
 			$("#treeHolder").append(d.toString());
 
-			//var blob = new Blob(sectors, {type: "application/octet-stream"});
-			//saveAs(blob, "hello world.txt");
-			
-			
-			
 		};
 		fr.readAsBinaryString(this.files[0]);
 	};
