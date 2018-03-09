@@ -1,5 +1,14 @@
 {
-  "name"    : "FIRW",
-  "version" : "0.0.0",
-  "main"    : "main.js"
+  "name": "floppy-js",
+  "version": "0.0.0",
+  "main": "main.js",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^1.8.3",
+    "goodparts": "^1.2.1"
+  },
+  "scripts": {
+    "start": "electron .",
+    "lint": "node_modules/.bin/goodparts path/to/files/for/linting"
+  }
 }

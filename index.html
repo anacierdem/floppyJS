@@ -3,239 +3,210 @@
 <head><meta http-equiv="Content-Type" content="text/html; charset=big5">
     <title>floppyJS</title>
 </head>
-<body>                            
-    <div id="browseOpen">Load</div>
- 
-	<script type="text/javascript" src = "http://code.jquery.com/jquery-1.7.min.js"></script>
-	
-	<link rel="StyleSheet" href="dtree.css" type="text/css" />
-	<script type="text/javascript" src="dtree.js"></script>
-	<script type="text/javascript" src="FileSaver.js"></script>
-	
-	<div id = "textOut" style="position: fixed;left: 500px;"></div>
-	<div id = "treeHolder" style="position: fixed;left: 0px;height: 600px;width:500px;overflow: scroll;"></div>
-    <script type="text/javascript"> 
+<body>
+  <div id="browseOpen">Load</div>
+  <script type="text/javascript" src = "http://code.jquery.com/jquery-1.7.min.js"></script>
 
-		const { remote } = require('electron');
-		const mainProcess = remote.require('./main.js');
-		const { ipcRenderer } = require('electron');
+  <link rel="StyleSheet" href="dtree.css" type="text/css" />
+  <script type="text/javascript" src="dtree.js"></script>
+  <script type="text/javascript" src="FileSaver.js"></script>
 
-		function littleEndianInteger (length, data, startOffset) {
-			var value = 0;
-			for(var i=0; i<length; i++) {
-				value += data[startOffset + i] << 8*i;
-			}
-			return value;
-		};
-		
-		function stringFromBytes (length, data, startOffset) {
-			var value = "";
-			for(var i=0; i<length; i++) {
-				value += String.fromCharCode(data[startOffset + i]);
-			}
-			return value;
-		};
-		
-		function getBitFromByte (data, startOffset, bitNo) {
+  <div id="treeHolder"></div>
+  <script type="text/javascript"> 
+    const { remote } = require('electron');
+    const mainProcess = remote.require('./main.js');
+    const { ipcRenderer } = require('electron');
 
-			var value = (data[startOffset] & (1 << bitNo)) >> bitNo;
-			return value;
-		};
-		
-		function getFileFromFAT (entryNO) {
-		
-			var fileData = [];
-			
-			if(FAT1[entryNO] == 0) {
-				return fileData;
-			}else if(FAT1[entryNO] >= 0xFF0 && FAT1[entryNO] <= 0xFF6 ) {
-				return fileData = getClusterFromFAT(entryNO);
-			}else if(FAT1[entryNO] == 0xFF7) {
-				return fileData;
-			}else if((FAT1[entryNO] >= 0xFF8 && FAT1[entryNO] <= 0xFFF) || FAT1[entryNO] > 2849 ) {
-				return fileData = fileData.concat(getClusterFromFAT(entryNO));
-			}else {
-				fileData = fileData.concat(getClusterFromFAT(entryNO));
-				return fileData.concat(getFileFromFAT (FAT1[entryNO]));
-			}
-		};
-		
-		function getClusterFromFAT(entryNO) {
-			var sectorNo = 33 + entryNO - 2;
-			var value = sectors[sectorNo];
-			return value;
-		}
+    function littleEndianInteger(length, data, startOffset) {
+      var value = 0;
+      for (var i = 0; i < length; i++) {
+        value += data[startOffset + i] << 8 * i;
+      }
+      return value;
+    };
+    
+    function stringFromBytes(length, data, startOffset) {
+      var value = "";
+      for(var i = 0; i < length; i++) {
+        value += String.fromCharCode(data[startOffset + i]);
+      }
+      return value;
+    };
 
-		//0 ve 1 alır
-		function readFAT (FATNo) {
-			var FATData = [];
-			var FATEntries = [];
+    function getBitFromByte(data, startOffset, bitNo) {
+      var value = (data[startOffset] & (1 << bitNo)) >> bitNo;
+      return value;
+    };
 
-			//Make FAT Bytes into a single array
-			for (var i = 0; i < 9; i++){
-			
-				for (var j = 0; j < 512; j++){
-					FATData = FATData.concat(sectors[i+FATNo*9 + 1][j]);
-				}
-			}
-			
-			for (var i = 0; i < 9*512; i=i+3){
-			
-				var byte1 = FATData[i+0];
-			
-				//second 4bit
-				var second4bit = FATData[i+1] & 0xF
-				
-				//first 4bit
-				var first4bit = (FATData[i+1] & 0xF0) >> 4
-				
-				var byte3 = FATData[i+2]
-				
-				var firstAddress = (second4bit << 8) + byte1;
-				var secondAddress = first4bit +(byte3 << 4);
-				
-				if(i/3 * 2 == 249 || i/3 * 2 + 1 == 249)
-				a=1;
-				
-				FATEntries[i/3 * 2] = firstAddress;
-				FATEntries[i/3 * 2 + 1] = secondAddress;
-			}
-			return FATEntries;
-		};
-		
-		function readAndAppendDirectorySector (data, parentEntry) {
-			var EOD = false;
-			//loop directory entries
-			for (var j = 0; j < 16; j++) {
-			
-				var byteNo = j*32;
-			
-				if(data[byteNo+0] == 0)
-					EOD = true;
-			
-				if(EOD)
-					break;
+    function getFileFromFAT(entryNO) {
+      var fileData = [];
+      if (FAT1[entryNO] == 0) {
+        return fileData;
+      } else if(FAT1[entryNO] >= 0xFF0 && FAT1[entryNO] <= 0xFF6 ) {
+        return fileData = getClusterFromFAT(entryNO);
+      } else if (FAT1[entryNO] == 0xFF7) {
+        return fileData;
+      } else if ((FAT1[entryNO] >= 0xFF8 && FAT1[entryNO] <= 0xFFF) || FAT1[entryNO] > 2849 ) {
+        return fileData = fileData.concat(getClusterFromFAT(entryNO));
+      } else {
+        fileData = fileData.concat(getClusterFromFAT(entryNO));
+        return fileData.concat(getFileFromFAT(FAT1[entryNO]));
+      }
+    };
 
-				var filename = stringFromBytes(8, data, byteNo + 0).trim();
-				var fileext = stringFromBytes(3, data, byteNo + 8).trim();
-				
-				var fullname = filename + (fileext == "" ? "" : ("." + fileext))
+    function getClusterFromFAT(entryNO) {
+      var sectorNo = 33 + entryNO - 2;
+      var value = sectors[sectorNo];
+      return value;
+    }
 
-				var attributes = {};
-				attributes.ro = getBitFromByte(data, byteNo + 11, 0);
-				attributes.hidden = getBitFromByte(data, byteNo + 11, 1);
-				attributes.system = getBitFromByte(data, byteNo + 11, 2);
-				attributes.label = getBitFromByte(data, byteNo + 11, 3);
-				attributes.dir = getBitFromByte(data, byteNo + 11, 4);
-				attributes.arch = getBitFromByte(data, byteNo + 11, 5);
-				
-				var fileSize = littleEndianInteger(4, data, byteNo + 28);
-				var firstCluster = littleEndianInteger(2, data, byteNo + 26);
+    function readFAT (FATNo) {
+      var FATData = [];
+      var FATEntries = [];
 
-				
-				if(fullname != "." && fullname != ".." && attributes.label != 1){
+      //Make FAT bytes a single array
+      for (var i = 0; i < 9; i++){
+        for (var j = 0; j < 512; j++){
+          FATData = FATData.concat(sectors[i + FATNo * 9 + 1][j]);
+        }
+      }
+      
+      for (var i = 0; i < 9 * 512; i = i + 3){
+        var byte1 = FATData[i + 0];
 
-					var scriptToRun = "";
+        //second 4bit
+        var second4bit = FATData[i + 1] & 0xF
 
-					if(attributes.dir != 1)
-					{
-						if(fileSize>0) {
-							var clusterCount = Math.ceil(fileSize/512);
-							var finalClusterByteCount = (1-clusterCount)*512+fileSize;
-		
-							scriptToRun = "var fileContents = getFileFromFAT("+firstCluster+");";
-							scriptToRun += "var finalCluster = new Uint8Array("+finalClusterByteCount+");";
-							scriptToRun += "finalCluster.set(fileContents["+(clusterCount-1)+"].slice(0,"+finalClusterByteCount+"));";
-							scriptToRun += "fileContents["+(clusterCount-1)+"] = finalCluster;";
-		
-							scriptToRun += "var blob = new Blob(fileContents, {type: 'application/octet-stream', endings: 'transparent'});";
-							scriptToRun += "saveAs(blob, '"+fullname+"', true);var size = "+fileSize+";";
-							
-							d.add(uniqueID,parentEntry,fullname, "javascript:"+scriptToRun); 
-							uniqueID++;
-						}
-					}else {
-						d.add(uniqueID,parentEntry,fullname, ""); 
-						uniqueID++;
-					}
+        //first 4bit
+        var first4bit = (FATData[i + 1] & 0xF0) >> 4
 
-					if(attributes.dir == 1){
-						var currentParent = uniqueID - 1;
-						var tmpClusters = getFileFromFAT(firstCluster);
-						for (var k = 0; k < tmpClusters.length; k++){
-							readAndAppendDirectorySector (tmpClusters[k], currentParent)
-						}
-					}
-				}
-			}
-			return EOD;
-		};
-		
-		
-		var sectors = [];
-		
-		var FAT1 = [];
-		var FAT2 = [];
-		
-		var uniqueID = 0;
+        var byte3 = FATData[i + 2]
 
-		var fileInput = document.getElementById("browseOpen");
-		fileInput.onclick = function () {    
-			mainProcess.run();
+        var firstAddress = (second4bit << 8) + byte1;
+        var secondAddress = first4bit + (byte3 << 4);
 
-			ipcRenderer.on('fileLoaded', (evt, msg) => {
-				
-				sectors = msg;
-				
-				$("#textOut").append("Bytes per sector: " + littleEndianInteger(2, sectors[0], 11) + "<br>");
-				$("#textOut").append("Sectors per cluster: " + littleEndianInteger(1, sectors[0], 13) + "<br>");
-				$("#textOut").append("Number of reserved sectors: " + littleEndianInteger(2, sectors[0], 14) + "<br>");
-				$("#textOut").append("Number of FATs: " + littleEndianInteger(1, sectors[0], 16) + "<br>");
-				$("#textOut").append("Maximum number of root directory entries: " + littleEndianInteger(2, sectors[0], 17) + "<br>");
-				$("#textOut").append("Total sector count: " + littleEndianInteger(2, sectors[0], 19) + "<br>");
-				$("#textOut").append("Sectors per FAT: " + littleEndianInteger(2, sectors[0], 22) + "<br>");
-				$("#textOut").append("Sectors per track: " + littleEndianInteger(2, sectors[0], 24) + "<br>");
-				$("#textOut").append("Number of heads: " + littleEndianInteger(2, sectors[0], 26) + "<br>");
-				$("#textOut").append("Boot signature: " + sectors[0][38].toString(16) + "<br>");
-				$("#textOut").append("Volume id: " + littleEndianInteger(4, sectors[0], 39) + "<br>");
-				$("#textOut").append("Volume label: " + stringFromBytes(11, sectors[0], 43) + "<br>");
-				$("#textOut").append("File system type: " + stringFromBytes(8, sectors[0], 54) + "<br>");
-				
-				uniqueID = 0;
-				
-				d = new dTree('d');
+        if (i / 3 * 2 == 249 || i / 3 * 2 + 1 == 249) {
+          a = 1;
+        }
 
-				d.add(uniqueID,-1,stringFromBytes(11, sectors[0], 43));
-				uniqueID++;
-				
-							
-				FAT1 = readFAT(0);
-				FAT2 = readFAT(1);
-				
-			
-				//loop directory sectors (14 total)
-				for (var i = 0; i < 14; i++) {
+        FATEntries[i / 3 * 2] = firstAddress;
+        FATEntries[i / 3 * 2 + 1] = secondAddress;
+      }
+      return FATEntries;
+    };
 
-					readAndAppendDirectorySector( sectors[19+i] , 0);
-						//break;
-				}
-				
-				$("#treeHolder").append(d.toString());
+    function readAndAppendDirectorySector(data, parentEntry) {
+      var EOD = false;
+      //loop directory entries
+      for (var j = 0; j < 16; j++) {
+        var byteNo = j * 32;
 
-			});
-		};
-		
-		/*$("#browseOpen").on('change', function(evt) {
+        if (data[byteNo + 0] == 0)
+          EOD = true;
 
-		for (var i = 0; i < evt.target.files.length; i++) {
+        if (EOD)
+          break;
 
+        var filename = stringFromBytes(8, data, byteNo + 0).trim();
+        var fileext = stringFromBytes(3, data, byteNo + 8).trim();
 
-		}
+        var fullname = filename + (fileext == "" ? "" : ("." + fileext))
 
-		});*/
-		
+        var attributes = {};
+        attributes.ro = getBitFromByte(data, byteNo + 11, 0);
+        attributes.hidden = getBitFromByte(data, byteNo + 11, 1);
+        attributes.system = getBitFromByte(data, byteNo + 11, 2);
+        attributes.label = getBitFromByte(data, byteNo + 11, 3);
+        attributes.dir = getBitFromByte(data, byteNo + 11, 4);
+        attributes.arch = getBitFromByte(data, byteNo + 11, 5);
 
-		
+        var fileSize = littleEndianInteger(4, data, byteNo + 28);
+        var firstCluster = littleEndianInteger(2, data, byteNo + 26);
+
+        if (fullname != "." && fullname != ".." && attributes.label != 1){
+          var scriptToRun = "";
+
+          if (attributes.dir != 1) {
+            if (fileSize > 0) {
+              var clusterCount = Math.ceil(fileSize/512);
+              var finalClusterByteCount = (1-clusterCount)*512+fileSize;
+              scriptToRun = "var fileContents = getFileFromFAT("+firstCluster+");";
+              scriptToRun += "var finalCluster = new Uint8Array("+finalClusterByteCount+");";
+              scriptToRun += "finalCluster.set(fileContents["+(clusterCount-1)+"].slice(0,"+finalClusterByteCount+"));";
+              scriptToRun += "fileContents["+(clusterCount-1)+"] = finalCluster;";
+              scriptToRun += "var blob = new Blob(fileContents, {type: 'application/octet-stream', endings: 'transparent'});";
+              scriptToRun += "saveAs(blob, '"+fullname+"', true);var size = "+fileSize+";";
+              d.add(uniqueID,parentEntry,fullname, "javascript:"+scriptToRun); 
+              uniqueID++;
+            }
+          } else {
+            d.add(uniqueID, parentEntry, fullname, ""); 
+            uniqueID++;
+          }
+
+          if (attributes.dir == 1){
+            var currentParent = uniqueID - 1;
+            var tmpClusters = getFileFromFAT(firstCluster);
+            for (var k = 0; k < tmpClusters.length; k++){
+              readAndAppendDirectorySector(tmpClusters[k], currentParent)
+            }
+          }
+        }
+      }
+      return EOD;
+    };
+
+    var sectors = [];
+
+    var FAT1 = [];
+    var FAT2 = [];
+
+    var uniqueID = 0;
+
+    var fileInput = document.getElementById("browseOpen");
+    fileInput.onclick = function () {    
+      mainProcess.loadData();
+    };
+
+    ipcRenderer.on('fileLoaded', (evt, msg) => {
+      sectors = msg;
+
+      console.log("Bytes per sector: " + littleEndianInteger(2, sectors[0], 11));
+      console.log("Sectors per cluster: " + littleEndianInteger(1, sectors[0], 13));
+      console.log("Number of reserved sectors: " + littleEndianInteger(2, sectors[0], 14));
+      console.log("Number of FATs: " + littleEndianInteger(1, sectors[0], 16));
+      console.log("Maximum number of root directory entries: " + littleEndianInteger(2, sectors[0], 17));
+      console.log("Total sector count: " + littleEndianInteger(2, sectors[0], 19));
+      console.log("Sectors per FAT: " + littleEndianInteger(2, sectors[0], 22));
+      console.log("Sectors per track: " + littleEndianInteger(2, sectors[0], 24));
+      console.log("Number of heads: " + littleEndianInteger(2, sectors[0], 26));
+      console.log("Boot signature: " + sectors[0][38].toString(16));
+      console.log("Volume id: " + littleEndianInteger(4, sectors[0], 39));
+      console.log("Volume label: " + stringFromBytes(11, sectors[0], 43));
+      console.log("File system type: " + stringFromBytes(8, sectors[0], 54));
+
+      uniqueID = 0;
+
+      d = new dTree('d');
+
+      // Volume label
+      d.add(uniqueID, -1, stringFromBytes(11, sectors[0], 43));
+      uniqueID++;
+
+      FAT1 = readFAT(0);
+
+      // TODO: FAT2 seems unused - fix
+      FAT2 = readFAT(1);
+
+      // Loop directory sectors (14 total)
+      for (var i = 0; i < 14; i++) {
+        // First 18 sectors are FATs
+        readAndAppendDirectorySector(sectors[19 + i], 0);
+      }
+
+      // TODO: get rid of dtree - Instead do all parsin on main process and render tree on Chromium.
+      $("#treeHolder").append(d.toString());
+    });
     </script>
 </body>
 </html>
