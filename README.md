@@ -13,7 +13,8 @@ Roadmap:
 ========
 
 - [ ] Migrate UI to use React.
-- [ ] Re-write and move parsing code to main process.
+- [ ] Move parsing code to main process.
+- [ ] Re-write parsing code.
 - [ ] Implement file adding support.
 - [ ] Add support for long Windows file names in addition to 8.3
 - [ ] Add direct disk access functionality.

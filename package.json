@@ -1,14 +1,17 @@
 {
   "name": "floppy-js",
   "version": "0.0.0",
+  "private": true,
   "main": "main.js",
   "dependencies": {},
   "devDependencies": {
     "electron": "^1.8.3",
-    "goodparts": "^1.2.1"
+    "goodparts": "^1.2.1",
+    "webpack": "^4.17.1",
+    "webpack-cli": "^3.1.0"
   },
   "scripts": {
     "start": "electron .",
-    "lint": "node_modules/.bin/goodparts path/to/files/for/linting"
+    "lint": "node_modules/.bin/goodparts ./src"
   }
 }

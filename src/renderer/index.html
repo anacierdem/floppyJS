@@ -7,15 +7,15 @@
   <div id="browseOpen">Load</div>
   <script type="text/javascript" src = "http://code.jquery.com/jquery-1.7.min.js"></script>
 
-  <link rel="StyleSheet" href="dtree.css" type="text/css" />
-  <script type="text/javascript" src="dtree.js"></script>
-  <script type="text/javascript" src="FileSaver.js"></script>
+  <link rel="StyleSheet" href="./css/dtree.css" type="text/css" />
+  <script type="text/javascript" src="./lib/dtree.js"></script>
+  <script type="text/javascript" src="./lib/FileSaver.js"></script>
 
   <div id="treeHolder"></div>
   <script type="text/javascript"> 
-    const { remote } = require('electron');
-    const mainProcess = remote.require('./main.js');
-    const { ipcRenderer } = require('electron');
+    const { remote, ipcRenderer } = require('electron');
+
+    const mainProcess = remote.require('./src/app/exports.js');
 
     function littleEndianInteger(length, data, startOffset) {
       var value = 0;
