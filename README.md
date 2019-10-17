@@ -7,8 +7,6 @@ Intended to read and modify images at the end, preferentially with direct disk a
 
 Currently working with only FAT12 images and only file download is possible. Any help is appreciated.
 
-Uses dTree -> http://www.destroydrop.com/javascripts/tree/ (to be removed)
-
 Roadmap:
 ========
 

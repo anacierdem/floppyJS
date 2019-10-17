@@ -2,6 +2,8 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const url = require('url');
 
+const isProduction = process.env.NODE_ENV !== 'development';
+
 let winHandle;
 
 function createWindow () {
@@ -9,11 +11,16 @@ function createWindow () {
 
   winHandle.webContents.openDevTools();
 
-  winHandle.loadURL(url.format({
-    pathname: path.join(__dirname, '/../renderer/index.html'),
-    protocol: 'file:',
-    slashes: true
-  }));
+  if (isProduction) {
+    winHandle.loadURL(url.format({
+      pathname: path.join(__dirname, '../../dist/index.html'),
+      protocol: 'file:',
+      slashes: true
+    }));
+  } else {
+    // TODO: get URL programmatically
+    winHandle.loadURL('http://localhost:8081/');
+  }
 
   winHandle.on('closed', () => {
     winHandle = null;
