@@ -1,6 +1,6 @@
-const fs = require('fs');
-const { dialog } = require('electron');
-const { winHandle } = require('./app');
+const fs = require("fs");
+const { dialog } = require("electron");
+const { winHandle } = require("./app");
 
 exports.loadData = () => {
   const EXPECTED_FILE_SIZE = 2880 * 512;
@@ -8,7 +8,7 @@ exports.loadData = () => {
   // TODO: add support for direct disk access using
   // https://github.com/ronomon/direct-io This will enable manipulating
   // combined floppy data e.g for floppy emulator flash drives.
-  dialog.showOpenDialog(winHandle, {}, function (filePaths) {
+  dialog.showOpenDialog(winHandle, {}, function(filePaths) {
     // No files selected
     if (!filePaths) {
       return;
@@ -17,9 +17,9 @@ exports.loadData = () => {
       // This is not possible on a Windows system. Must check for other OSes
       // TODO: remove if unnecessary.
       dialog.showMessageBox(winHandle, {
-        type: 'error',
-        message: 'Select only one file.',
-        title: 'Unexpected input'
+        type: "error",
+        message: "Select only one file.",
+        title: "Unexpected input",
       });
     } else {
       // Prepare sector buffers
@@ -35,9 +35,9 @@ exports.loadData = () => {
 
       if (stats.size !== EXPECTED_FILE_SIZE) {
         dialog.showMessageBox(winHandle, {
-          type: 'error',
-          message: 'Not a valid floppy image.',
-          title: 'Unexpected input'
+          type: "error",
+          message: "Not a valid floppy image.",
+          title: "Unexpected input",
         });
 
         return;
@@ -45,10 +45,10 @@ exports.loadData = () => {
 
       let stream = fs.createReadStream(filePaths[0], {
         start: 0,
-        end: EXPECTED_FILE_SIZE
+        end: EXPECTED_FILE_SIZE,
       });
 
-      stream.on('data', (chunk) => {
+      stream.on("data", chunk => {
         for (let i = 0; i < chunk.length; i++) {
           let sectorIndex = Math.floor(currentIndex / 512);
           let sectorPosition = currentIndex % 512;
@@ -58,15 +58,15 @@ exports.loadData = () => {
         }
       });
 
-      stream.on('end', () => {
-        winHandle.webContents.send('fileLoaded', sectors);
+      stream.on("end", () => {
+        winHandle.webContents.send("fileLoaded", sectors);
       });
 
-      stream.on('error', () => {
+      stream.on("error", () => {
         dialog.showMessageBox(winHandle, {
-          type: 'error',
-          message: 'Error reading file.',
-          title: 'Read error'
+          type: "error",
+          message: "Error reading file.",
+          title: "Read error",
         });
       });
     }

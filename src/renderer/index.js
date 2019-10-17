@@ -1,45 +1,48 @@
-import { number } from './test.ts';
+import { number } from "./test.ts";
 
-const { remote, ipcRenderer } = require('electron');
+const { remote, ipcRenderer } = require("electron");
 
-const mainProcess = remote.require('./src/app/exports.js');
+const mainProcess = remote.require("./src/app/exports.js");
 
 function littleEndianInteger(length, data, startOffset) {
   var value = 0;
   for (var i = 0; i < length; i++) {
-    value += data[startOffset + i] << 8 * i;
+    value += data[startOffset + i] << (8 * i);
   }
   return value;
-};
+}
 
 function stringFromBytes(length, data, startOffset) {
   var value = "";
-  for(var i = 0; i < length; i++) {
+  for (var i = 0; i < length; i++) {
     value += String.fromCharCode(data[startOffset + i]);
   }
   return value;
-};
+}
 
 function getBitFromByte(data, startOffset, bitNo) {
   var value = (data[startOffset] & (1 << bitNo)) >> bitNo;
   return value;
-};
+}
 
 function getFileFromFAT(entryNO) {
   var fileData = [];
   if (FAT1[entryNO] == 0) {
     return fileData;
-  } else if(FAT1[entryNO] >= 0xFF0 && FAT1[entryNO] <= 0xFF6 ) {
-    return fileData = getClusterFromFAT(entryNO);
-  } else if (FAT1[entryNO] == 0xFF7) {
+  } else if (FAT1[entryNO] >= 0xff0 && FAT1[entryNO] <= 0xff6) {
+    return (fileData = getClusterFromFAT(entryNO));
+  } else if (FAT1[entryNO] == 0xff7) {
     return fileData;
-  } else if ((FAT1[entryNO] >= 0xFF8 && FAT1[entryNO] <= 0xFFF) || FAT1[entryNO] > 2849 ) {
-    return fileData = fileData.concat(getClusterFromFAT(entryNO));
+  } else if (
+    (FAT1[entryNO] >= 0xff8 && FAT1[entryNO] <= 0xfff) ||
+    FAT1[entryNO] > 2849
+  ) {
+    return (fileData = fileData.concat(getClusterFromFAT(entryNO)));
   } else {
     fileData = fileData.concat(getClusterFromFAT(entryNO));
     return fileData.concat(getFileFromFAT(FAT1[entryNO]));
   }
-};
+}
 
 function getClusterFromFAT(entryNO) {
   var sectorNo = 33 + entryNO - 2;
@@ -47,40 +50,40 @@ function getClusterFromFAT(entryNO) {
   return value;
 }
 
-function readFAT (FATNo) {
+function readFAT(FATNo) {
   var FATData = [];
   var FATEntries = [];
 
   //Make FAT bytes a single array
-  for (var i = 0; i < 9; i++){
-    for (var j = 0; j < 512; j++){
+  for (var i = 0; i < 9; i++) {
+    for (var j = 0; j < 512; j++) {
       FATData = FATData.concat(sectors[i + FATNo * 9 + 1][j]);
     }
   }
-  
-  for (var i = 0; i < 9 * 512; i = i + 3){
+
+  for (var i = 0; i < 9 * 512; i = i + 3) {
     var byte1 = FATData[i + 0];
 
     //second 4bit
-    var second4bit = FATData[i + 1] & 0xF
+    var second4bit = FATData[i + 1] & 0xf;
 
     //first 4bit
-    var first4bit = (FATData[i + 1] & 0xF0) >> 4
+    var first4bit = (FATData[i + 1] & 0xf0) >> 4;
 
-    var byte3 = FATData[i + 2]
+    var byte3 = FATData[i + 2];
 
     var firstAddress = (second4bit << 8) + byte1;
     var secondAddress = first4bit + (byte3 << 4);
 
-    if (i / 3 * 2 == 249 || i / 3 * 2 + 1 == 249) {
+    if ((i / 3) * 2 == 249 || (i / 3) * 2 + 1 == 249) {
       a = 1;
     }
 
-    FATEntries[i / 3 * 2] = firstAddress;
-    FATEntries[i / 3 * 2 + 1] = secondAddress;
+    FATEntries[(i / 3) * 2] = firstAddress;
+    FATEntries[(i / 3) * 2 + 1] = secondAddress;
   }
   return FATEntries;
-};
+}
 
 function readAndAppendDirectorySector(data, parentEntry) {
   var EOD = false;
@@ -88,16 +91,14 @@ function readAndAppendDirectorySector(data, parentEntry) {
   for (var j = 0; j < 16; j++) {
     var byteNo = j * 32;
 
-    if (data[byteNo + 0] == 0)
-      EOD = true;
+    if (data[byteNo + 0] == 0) EOD = true;
 
-    if (EOD)
-      break;
+    if (EOD) break;
 
     var filename = stringFromBytes(8, data, byteNo + 0).trim();
     var fileext = stringFromBytes(3, data, byteNo + 8).trim();
 
-    var fullname = filename + (fileext == "" ? "" : ("." + fileext))
+    var fullname = filename + (fileext == "" ? "" : "." + fileext);
 
     var attributes = {};
     attributes.ro = getBitFromByte(data, byteNo + 11, 0);
@@ -110,38 +111,57 @@ function readAndAppendDirectorySector(data, parentEntry) {
     var fileSize = littleEndianInteger(4, data, byteNo + 28);
     var firstCluster = littleEndianInteger(2, data, byteNo + 26);
 
-    if (fullname != "." && fullname != ".." && attributes.label != 1){
+    if (fullname != "." && fullname != ".." && attributes.label != 1) {
       var scriptToRun = "";
 
       if (attributes.dir != 1) {
         if (fileSize > 0) {
-          var clusterCount = Math.ceil(fileSize/512);
-          var finalClusterByteCount = (1-clusterCount)*512+fileSize;
-          scriptToRun = "var fileContents = getFileFromFAT("+firstCluster+");";
-          scriptToRun += "var finalCluster = new Uint8Array("+finalClusterByteCount+");";
-          scriptToRun += "finalCluster.set(fileContents["+(clusterCount-1)+"].slice(0,"+finalClusterByteCount+"));";
-          scriptToRun += "fileContents["+(clusterCount-1)+"] = finalCluster;";
-          scriptToRun += "var blob = new Blob(fileContents, {type: 'application/octet-stream', endings: 'transparent'});";
-          scriptToRun += "saveAs(blob, '"+fullname+"', true);var size = "+fileSize+";";
-          console.log(uniqueID,parentEntry,fullname, "javascript:"+scriptToRun); 
+          var clusterCount = Math.ceil(fileSize / 512);
+          var finalClusterByteCount = (1 - clusterCount) * 512 + fileSize;
+          scriptToRun =
+            "var fileContents = getFileFromFAT(" + firstCluster + ");";
+          scriptToRun +=
+            "var finalCluster = new Uint8Array(" + finalClusterByteCount + ");";
+          scriptToRun +=
+            "finalCluster.set(fileContents[" +
+            (clusterCount - 1) +
+            "].slice(0," +
+            finalClusterByteCount +
+            "));";
+          scriptToRun +=
+            "fileContents[" + (clusterCount - 1) + "] = finalCluster;";
+          scriptToRun +=
+            "var blob = new Blob(fileContents, {type: 'application/octet-stream', endings: 'transparent'});";
+          scriptToRun +=
+            "saveAs(blob, '" +
+            fullname +
+            "', true);var size = " +
+            fileSize +
+            ";";
+          console.log(
+            uniqueID,
+            parentEntry,
+            fullname,
+            "javascript:" + scriptToRun,
+          );
           uniqueID++;
         }
       } else {
-        console.log(uniqueID, parentEntry, fullname, ""); 
+        console.log(uniqueID, parentEntry, fullname, "");
         uniqueID++;
       }
 
-      if (attributes.dir == 1){
+      if (attributes.dir == 1) {
         var currentParent = uniqueID - 1;
         var tmpClusters = getFileFromFAT(firstCluster);
-        for (var k = 0; k < tmpClusters.length; k++){
-          readAndAppendDirectorySector(tmpClusters[k], currentParent)
+        for (var k = 0; k < tmpClusters.length; k++) {
+          readAndAppendDirectorySector(tmpClusters[k], currentParent);
         }
       }
     }
   }
   return EOD;
-};
+}
 
 var sectors = [];
 
@@ -151,18 +171,23 @@ var FAT2 = [];
 var uniqueID = 0;
 
 var fileInput = document.getElementById("browseOpen");
-fileInput.onclick = function () {    
+fileInput.onclick = function() {
   mainProcess.loadData();
 };
 
-ipcRenderer.on('fileLoaded', (evt, msg) => {
+ipcRenderer.on("fileLoaded", (evt, msg) => {
   sectors = msg;
 
   console.log("Bytes per sector: " + littleEndianInteger(2, sectors[0], 11));
   console.log("Sectors per cluster: " + littleEndianInteger(1, sectors[0], 13));
-  console.log("Number of reserved sectors: " + littleEndianInteger(2, sectors[0], 14));
+  console.log(
+    "Number of reserved sectors: " + littleEndianInteger(2, sectors[0], 14),
+  );
   console.log("Number of FATs: " + littleEndianInteger(1, sectors[0], 16));
-  console.log("Maximum number of root directory entries: " + littleEndianInteger(2, sectors[0], 17));
+  console.log(
+    "Maximum number of root directory entries: " +
+      littleEndianInteger(2, sectors[0], 17),
+  );
   console.log("Total sector count: " + littleEndianInteger(2, sectors[0], 19));
   console.log("Sectors per FAT: " + littleEndianInteger(2, sectors[0], 22));
   console.log("Sectors per track: " + littleEndianInteger(2, sectors[0], 24));

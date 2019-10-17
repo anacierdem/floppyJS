@@ -8,7 +8,8 @@
     "electron": "electron .",
     "electron-dev": "cross-env NODE_ENV=development run-p start run-electron",
     "build": "cross-env NODE_ENV=production webpack",
-    "test": "echo NoTestYet"
+    "test": "echo NoTestYet",
+    "format": "prettier --check \"src/**/*.js\""
   },
   "repository": "",
   "license": "ISC",
