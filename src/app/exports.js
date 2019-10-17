@@ -25,13 +25,13 @@ exports.loadData = () => {
       // Prepare sector buffers
       // TODO: this may be a one contiguous buffer as well.
       let currentIndex = 0;
-      let sectors = [];
+      const sectors = [];
 
       for (let i = 0; i < 2880; i++) {
         sectors[i] = new Uint8Array(512);
       }
 
-      let stats = fs.statSync(filePaths[0]);
+      const stats = fs.statSync(filePaths[0]);
 
       if (stats.size !== EXPECTED_FILE_SIZE) {
         dialog.showMessageBox(winHandle, {
@@ -43,15 +43,15 @@ exports.loadData = () => {
         return;
       }
 
-      let stream = fs.createReadStream(filePaths[0], {
+      const stream = fs.createReadStream(filePaths[0], {
         start: 0,
         end: EXPECTED_FILE_SIZE,
       });
 
       stream.on("data", chunk => {
         for (let i = 0; i < chunk.length; i++) {
-          let sectorIndex = Math.floor(currentIndex / 512);
-          let sectorPosition = currentIndex % 512;
+          const sectorIndex = Math.floor(currentIndex / 512);
+          const sectorPosition = currentIndex % 512;
 
           sectors[sectorIndex][sectorPosition] = chunk[i];
           currentIndex++;
