@@ -16,3 +16,4 @@ Roadmap:
 - [ ] Implement file adding support.
 - [ ] Add support for long Windows file names in addition to 8.3
 - [ ] Add direct disk access functionality.
+- [ ] Use Ramda.
